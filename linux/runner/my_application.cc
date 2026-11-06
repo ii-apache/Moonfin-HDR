@@ -12,6 +12,69 @@ struct _MyApplication {
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
+// Linux side of lib/playback/hdr_video_window.dart.
+//
+// On Windows the runner creates a child window for mpv. On Linux mpv opens its
+// own Wayland window (see _prepareLinuxVideoWindow), and a KWin rule keeps it
+// behind this one. All the runner has to do is make the Flutter view
+// see-through while that window exists, so the player chrome Flutter draws
+// sits over the video - the same arrangement as the Windows default.
+static FlView* g_hdr_view = nullptr;
+static FlMethodChannel* g_hdr_video_channel = nullptr;
+
+// MOONFIN_LINUX_HDR=0 keeps the old opaque window and texture renderer, and
+// matches linuxNativeHdrOptedOut in lib/util/os_version_io.dart.
+static gboolean my_application_native_hdr_enabled() {
+  return g_strcmp0(g_getenv("MOONFIN_LINUX_HDR"), "0") != 0;
+}
+
+static void my_application_set_view_clear(gboolean clear) {
+  if (g_hdr_view == nullptr) {
+    return;
+  }
+  GdkRGBA color = {0.0, 0.0, 0.0, clear ? 0.0 : 1.0};
+  fl_view_set_background_color(g_hdr_view, &color);
+  gtk_widget_queue_draw(GTK_WIDGET(g_hdr_view));
+}
+
+static void my_application_hdr_video_call(FlMethodChannel* channel,
+                                          FlMethodCall* method_call,
+                                          gpointer user_data) {
+  const gchar* method = fl_method_call_get_name(method_call);
+  g_autoptr(FlMethodResponse) response = nullptr;
+  if (g_strcmp0(method, "create") == 0) {
+    my_application_set_view_clear(TRUE);
+    // Any non-zero value: the Dart side only uses it to know a window exists.
+    g_autoptr(FlValue) handle = fl_value_new_int(1);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(handle));
+  } else if (g_strcmp0(method, "destroy") == 0) {
+    my_application_set_view_clear(FALSE);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else if (g_strcmp0(method, "setGeometry") == 0 ||
+             g_strcmp0(method, "setVisible") == 0) {
+    // mpv's window is a full-screen toplevel the compositor places, so there
+    // is nothing to move or hide here.
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else {
+    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+  }
+  g_autoptr(GError) error = nullptr;
+  if (!fl_method_call_respond(method_call, response, &error)) {
+    g_warning("hdr_video: could not respond: %s", error->message);
+  }
+}
+
+static void my_application_register_hdr_video(FlView* view) {
+  g_hdr_view = view;
+  FlEngine* engine = fl_view_get_engine(view);
+  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
+  g_hdr_video_channel = fl_method_channel_new(
+      fl_engine_get_binary_messenger(engine), "moonfin/hdr_video",
+      FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(
+      g_hdr_video_channel, my_application_hdr_video_call, nullptr, nullptr);
+}
+
 // Gives the window an icon of its own, taken from the bundle next to the
 // binary.
 //
@@ -310,6 +373,16 @@ static void my_application_activate(GApplication* application) {
   my_application_set_window_icon(window);
 
   gtk_window_set_default_size(window, 1280, 720);
+
+  // An alpha visual has to be chosen before the window is realized; the view
+  // stays opaque black until mpv's window exists.
+  if (my_application_native_hdr_enabled()) {
+    GdkVisual* visual = gdk_screen_get_rgba_visual(gtk_window_get_screen(window));
+    if (visual != nullptr) {
+      gtk_widget_set_visual(GTK_WIDGET(window), visual);
+      gtk_widget_set_app_paintable(GTK_WIDGET(window), TRUE);
+    }
+  }
   gtk_widget_show(GTK_WIDGET(window));
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
@@ -323,6 +396,9 @@ static void my_application_activate(GApplication* application) {
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
 
   moonfin_game_register(fl_view_get_engine(view));
+  if (my_application_native_hdr_enabled()) {
+    my_application_register_hdr_video(view);
+  }
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }

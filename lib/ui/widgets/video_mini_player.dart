@@ -90,8 +90,12 @@ class VideoMiniPlayerController {
 
   /// The backend whose native HDR window this controller may present, on
   /// Windows only.
+  ///
+  /// Not on Linux: mpv's window there is a full-screen toplevel that can't be
+  /// moved into the thumbnail, so the mini player stays on the texture.
   MediaKitPlayerBackend? get hdrBackend =>
       PlatformDetection.supportsNativeHdrWindow &&
+          PlatformDetection.isWindows &&
           GetIt.instance.isRegistered<MediaKitPlayerBackend>()
       ? GetIt.instance<MediaKitPlayerBackend>()
       : null;

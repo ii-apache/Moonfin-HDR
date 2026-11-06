@@ -417,7 +417,10 @@ class PlatformDetection {
   /// used is decided per session - see `HdrOutputController`.
   /// [UserPreferences.videoRenderer] is the off switch. There is deliberately
   /// no compile-time one.
-  static bool get supportsNativeHdrWindow => isWindows;
+  /// Windows hands mpv a child HWND; Linux lets mpv open its own Wayland
+  /// window, which KWin keeps behind the see-through Moonfin window.
+  static bool get supportsNativeHdrWindow =>
+      isWindows || (isLinux && !linuxNativeHdrOptedOut());
 
   /// Apple platforms use the shared AVPlayer-based preview/theme channels
   /// (`moonfin/appletv_preview`, `moonfin/appletv_theme_music`) instead of a

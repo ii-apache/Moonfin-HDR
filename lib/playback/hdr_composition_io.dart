@@ -6,6 +6,8 @@ import 'dart:io';
 /// `MOONFIN_HDR_DWM=0` falls back to the overlay-capture arrangement, and
 /// 1..4 picks a specific transparency technique.
 int readDwmMode() {
+  // Linux has no overlay-capture runner; mpv's window always sits behind.
+  if (Platform.isLinux) return 2;
   if (!Platform.isWindows) return 0;
   const fallback = 2;
   final raw = Platform.environment['MOONFIN_HDR_DWM']?.trim();

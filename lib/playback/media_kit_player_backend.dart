@@ -1450,8 +1450,12 @@ class MediaKitPlayerBackend extends PlayerBackend
       // mini player go on using them after the native path hands back.
       await _captureNativeRenderState(native);
 
-      await _nativeSetProperty(native, 'wid', handle.toString());
-      await _nativeSetProperty(native, 'gpu-api', 'd3d11');
+      if (PlatformDetection.isLinux) {
+        await _prepareLinuxVideoWindow(native);
+      } else {
+        await _nativeSetProperty(native, 'wid', handle.toString());
+        await _nativeSetProperty(native, 'gpu-api', 'd3d11');
+      }
       // Before `vo`, not after: the swapchain colorspace is negotiated at
       // creation.
       await _applyPassthroughHint(native, displayHdr: await displayHdr);
@@ -1668,7 +1672,9 @@ class MediaKitPlayerBackend extends PlayerBackend
   /// subtitle renderer, so [sid] carries the active track across.
   Future<void> _restoreTexturePath(NativePlayer native, {String? sid}) async {
     try {
-      await _nativeSetProperty(native, 'wid', '0');
+      if (!PlatformDetection.isLinux) {
+        await _nativeSetProperty(native, 'wid', '0');
+      }
       // Survives the vo swap, so clear it rather than promise passthrough
       // into media_kit's 8-bit texture.
       await _applyPassthroughHint(native, displayHdr: false);
@@ -1683,10 +1689,27 @@ class MediaKitPlayerBackend extends PlayerBackend
     }
   }
 
+  /// Linux has no window to hand mpv: with no `wid`, gpu-next opens its own
+  /// Wayland toplevel. It opens full screen under the app id
+  /// `moonfin-video`, which a KWin rule keeps below Moonfin and out of focus,
+  /// so the see-through Moonfin window stays on top and keeps every key -
+  /// the same arrangement as the Windows default. mpv's own key and mouse
+  /// handling is off so nothing reaches it even before the rule exists.
+  Future<void> _prepareLinuxVideoWindow(NativePlayer native) async {
+    await _tryNativeSetProperty(native, 'wayland-app-id', 'moonfin-video');
+    await _tryNativeSetProperty(native, 'title', 'Moonfin video');
+    await _nativeSetProperty(native, 'gpu-api', 'vulkan');
+    await _tryNativeSetProperty(native, 'fullscreen', 'yes');
+    await _tryNativeSetProperty(native, 'input-vo-keyboard', 'no');
+    await _tryNativeSetProperty(native, 'input-cursor', 'no');
+    await _tryNativeSetProperty(native, 'cursor-autohide', 'always');
+  }
+
   /// Everything the native handover overwrites that outlives it: `gpu-api`
   /// plus the keys [_applyDesktopRenderQuality] replaces.
   static const List<String> _nativeRenderStateKeys = [
     'gpu-api',
+    'fullscreen',
     'dither',
     'dither-depth',
     'scale',
@@ -2244,6 +2267,9 @@ class MediaKitPlayerBackend extends PlayerBackend
     'target-colorspace-hint',
     'target-colorspace-hint-mode',
     'hdr-compute-peak',
+    // Tone-mapping tuning for gpu-next's own HDR window.
+    'hdr-peak-percentile',
+    'hdr-contrast-recovery',
     // gpu-api and gpu-context deliberately stay OUT of this list: they belong
     // to the unsafe-advanced tier, and listing them here would bypass that
     // gate on every platform - a wrong gpu-context blacks out all playback.

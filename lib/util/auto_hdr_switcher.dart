@@ -1,6 +1,8 @@
 import 'package:flutter/services.dart';
 
 import '../preference/preference_constants.dart';
+import 'linux_hdr_state_stub.dart'
+    if (dart.library.io) 'linux_hdr_state_io.dart';
 import 'platform_detection.dart';
 
 class AutoHdrSwitcher {
@@ -11,6 +13,7 @@ class AutoHdrSwitcher {
   /// out. Unknown is kept apart from SDR because the query can fail mid-
   /// topology-change, exactly when a monitor crossing fires.
   static Future<bool?> displayHdrState() async {
+    if (PlatformDetection.isLinux) return linuxDisplayHdrState();
     if (!PlatformDetection.isWindows) return false;
     try {
       final state = await _channel.invokeMapMethod<String, dynamic>(
