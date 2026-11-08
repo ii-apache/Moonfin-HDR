@@ -999,6 +999,9 @@ build_rpm() {
 
   local version="$(get_app_version)"
   local rpm_name="${APP_NAME}_${PLATFORM_TAG}_v${version}.rpm"
+  # The HDR fork keeps upstream's version, so a timestamped release is what
+  # lets `dnf upgrade` see each new build as newer than the last.
+  local rpm_release="${RPM_RELEASE:-1.hdr$(date -u +%Y%m%d%H%M)}"
   local rpm_dir="$TEMP_DIR/rpm"
   local spec_file="$rpm_dir/moonfin.spec"
 
@@ -1010,7 +1013,7 @@ build_rpm() {
   cat > "$spec_file" << EOF
 Name:           moonfin
 Version:        ${version}
-Release:        1
+Release:        ${rpm_release}
 Summary:        Jellyfin & Emby media client
 License:        GPL-3.0-only
 Requires:       xdg-user-dirs

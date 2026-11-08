@@ -629,6 +629,13 @@ class MediaKitPlayerBackend extends PlayerBackend
     });
     _videoParamsSub = _player.stream.videoParams.listen(_onVideoParams);
     hdrOutput.status.addListener(_refreshSubtitleFontSize);
+    if (PlatformDetection.isLinux) {
+      // Linux has no playback info overlay for this yet, so the journal is
+      // where a black picture gets traced from.
+      hdrOutput.status.addListener(
+        () => debugPrint('hdr_video: output ${hdrOutput.status.value.name}'),
+      );
+    }
     _secondaryPositionSub = _player.stream.position.listen((_) {
       if (_secondarySubtitleRequested && supportsSecondarySubtitlePosition) {
         unawaited(_refreshStackedSecondaryPosition());

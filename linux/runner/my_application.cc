@@ -35,6 +35,8 @@ static void my_application_set_view_clear(gboolean clear) {
   GdkRGBA color = {0.0, 0.0, 0.0, clear ? 0.0 : 1.0};
   fl_view_set_background_color(g_hdr_view, &color);
   gtk_widget_queue_draw(GTK_WIDGET(g_hdr_view));
+  // One line per switch, so a black picture can be traced from the journal.
+  g_message("hdr_video: view %s", clear ? "see-through" : "opaque");
 }
 
 static void my_application_hdr_video_call(FlMethodChannel* channel,

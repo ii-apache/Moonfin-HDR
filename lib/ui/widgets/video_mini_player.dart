@@ -1097,12 +1097,23 @@ class VideoMiniPlayerHoleClip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!PlatformDetection.isWindows) return child;
+    if (!PlatformDetection.isWindows && !PlatformDetection.isLinux) {
+      return child;
+    }
     final controller = VideoMiniPlayerController.instance;
+    // Linux keeps the mini player on the texture, so [hdrBackend] is null
+    // there, but the full player's window still sits behind the backdrop.
+    final backend = PlatformDetection.isLinux
+        ? (PlatformDetection.supportsNativeHdrWindow &&
+                  GetIt.instance.isRegistered<MediaKitPlayerBackend>()
+              ? GetIt.instance<MediaKitPlayerBackend>()
+              : null)
+        : controller.hdrBackend;
+    if (backend == null && PlatformDetection.isLinux) return child;
     return _HoleClipPath(
       clipper: _HoleClipper(
         hole: controller.hdrHole,
-        windowOwner: controller.hdrBackend?.hdrOutput.window.claimedBy,
+        windowOwner: backend?.hdrOutput.window.claimedBy,
       ),
       child: child,
     );
