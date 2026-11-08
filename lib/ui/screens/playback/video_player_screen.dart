@@ -4144,6 +4144,24 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                               : Colors.black,
                         ),
                       ),
+                      // Linux: a frame with nothing painted reaches the GTK
+                      // embedder as zero layers, and it then keeps showing
+                      // the last frame it had. With the video behind a
+                      // see-through window that froze the controls on screen
+                      // after they hid. One near-invisible pixel keeps every
+                      // frame non-empty.
+                      if (PlatformDetection.isLinux &&
+                          HdrComposition.videoBehindFlutter &&
+                          _videoShowsThrough)
+                        const Positioned(
+                          left: 0,
+                          top: 0,
+                          width: 1,
+                          height: 1,
+                          child: IgnorePointer(
+                            child: ColoredBox(color: Color(0x01000000)),
+                          ),
+                        ),
                       _buildVideoSurface(),
                       if (PlatformDetection.isWeb)
                         const Positioned.fill(

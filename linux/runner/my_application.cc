@@ -21,7 +21,6 @@ G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 // sits over the video - the same arrangement as the Windows default.
 static FlView* g_hdr_view = nullptr;
 static FlMethodChannel* g_hdr_video_channel = nullptr;
-static gboolean g_hdr_view_clear = FALSE;
 
 // MOONFIN_LINUX_HDR=0 keeps the old opaque window and texture renderer, and
 // matches linuxNativeHdrOptedOut in lib/util/os_version_io.dart.
@@ -33,7 +32,6 @@ static void my_application_set_view_clear(gboolean clear) {
   if (g_hdr_view == nullptr) {
     return;
   }
-  g_hdr_view_clear = clear;
   GdkRGBA color = {0.0, 0.0, 0.0, clear ? 0.0 : 1.0};
   fl_view_set_background_color(g_hdr_view, &color);
   gtk_widget_queue_draw(GTK_WIDGET(g_hdr_view));
@@ -68,27 +66,8 @@ static void my_application_hdr_video_call(FlMethodChannel* channel,
   }
 }
 
-// With a transparent background the Flutter renderer skips painting it and
-// blends each frame over what the window buffer already holds. GDK reuses
-// that buffer from the last frame, so anything Flutter stops drawing (the
-// player controls fading out) would stay on screen. Clearing the damaged area
-// first makes every frame start from a see-through window. This runs before
-// the view's own draw, which then paints its children.
-static gboolean my_application_clear_view_cb(GtkWidget* widget, cairo_t* cr,
-                                             gpointer user_data) {
-  if (g_hdr_view_clear) {
-    cairo_save(cr);
-    cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
-    cairo_paint(cr);
-    cairo_restore(cr);
-  }
-  return FALSE;
-}
-
 static void my_application_register_hdr_video(FlView* view) {
   g_hdr_view = view;
-  g_signal_connect(view, "draw", G_CALLBACK(my_application_clear_view_cb),
-                   nullptr);
   FlEngine* engine = fl_view_get_engine(view);
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
   g_hdr_video_channel = fl_method_channel_new(
