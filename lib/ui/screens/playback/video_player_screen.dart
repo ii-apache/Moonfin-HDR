@@ -2829,6 +2829,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       }
     }
     await _restoreSystemUiForExit();
+    await _releaseLinuxVideoWindowBeforeLeaving(pause: true);
     if (mounted) {
       _dismissTopOverlayRouteIfAny();
       setState(() {
@@ -2840,6 +2841,35 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       });
     }
     unawaited(_manager.stop(userInitiated: false));
+  }
+
+  /// Linux: hands mpv's own video window back while it is still on screen.
+  ///
+  /// Left to dispose, the release runs after the screen below has covered
+  /// mpv's window. KWin stops sending frame callbacks to a covered window,
+  /// so mpv's Vulkan present blocks while the vo swap tears the swapchain
+  /// down, and the Nvidia driver stalls the GPU for seconds (Xid 109 CTX
+  /// SWITCH TIMEOUT on mpv's vo thread). Releasing first, with the frame
+  /// still pausing, lets the swap finish against a visible window. Dispose's
+  /// own release is then a no-op, since this screen is no longer the
+  /// presenter.
+  Future<void> _releaseLinuxVideoWindowBeforeLeaving({
+    required bool pause,
+  }) async {
+    final hdrBackend = _hdrBackend;
+    if (!PlatformDetection.isLinux ||
+        hdrBackend == null ||
+        !hdrBackend.hdrOutput.isEngaged) {
+      return;
+    }
+    try {
+      if (pause) await _manager.pause();
+      await hdrBackend
+          .releaseNativeHdrPresenter(this)
+          .timeout(const Duration(seconds: 3));
+    } catch (error) {
+      debugPrint('hdr_video: early release failed: $error');
+    }
   }
 
   /// Shrinks the player into the bar along the bottom of the app. Playback
