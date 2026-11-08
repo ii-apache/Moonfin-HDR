@@ -2803,7 +2803,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     });
   }
 
+  /// Linux box trace for the remote and the controls, read with journalctl.
+  void _osdTrace(String message) {
+    if (PlatformDetection.isLinux) debugPrint('osd: $message');
+  }
+
   Future<void> _exitPlayback() async {
+    _osdTrace(
+      'exit playback from ${StackTrace.current.toString().split('\n').skip(1).take(3).map((l) => l.trim()).join(' <- ')}',
+    );
     if (_isStopping) return;
     setState(() {
       _isStopping = true;
@@ -2948,6 +2956,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
             : const Duration(seconds: 5));
     _hideTimer = Timer(hideDelay, () {
       if (!mounted) return;
+      _osdTrace(
+        'hide timer: covered=$_routeCovered playing=${_state.isPlaying} '
+        'pausedCard=$_hasPausedDescriptionCard visible=$_controlsVisible',
+      );
       // Closing a dialog gives focus back to the button that opened it, so the
       // controls stay up while one is open.
       if (_routeCovered) {
@@ -3541,6 +3553,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    _osdTrace(
+      'key ${event.runtimeType} ${event.logicalKey.debugName} '
+      'physical=${event.physicalKey.debugName} tv=${PlatformDetection.isTV} '
+      'visible=$_controlsVisible preroll=$_isCurrentPreroll '
+      'focus=${FocusManager.instance.primaryFocus?.debugLabel}',
+    );
     if (_isCurrentPreroll) {
       if (_routeCovered && _cinemaSkip.enabled) return KeyEventResult.ignored;
       // A desktop keyboard uses the regular Escape and dismiss shortcuts.
@@ -4024,6 +4042,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     return PopScope(
       canPop: _readyToPop,
       onPopInvokedWithResult: (didPop, _) {
+        _osdTrace(
+          'pop invoked didPop=$didPop ready=$_readyToPop visible=$_controlsVisible',
+        );
         if (didPop) return;
         if (_isBackNavigationSuppressed()) {
           return;
