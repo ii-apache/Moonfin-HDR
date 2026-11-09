@@ -1,0 +1,7 @@
+#!/bin/sh
+# LSBox TV session: Plasma Bigscreen's own session (KWin with HDR, the CEC
+# remote + controller input handler, portals, audio, user services) with
+# LSBox Home on screen instead of the Plasma shell.
+export LSBOX_TV=1
+systemctl --user set-environment LSBOX_TV=1 2>/dev/null
+exec @BIGSCREEN_SESSION@

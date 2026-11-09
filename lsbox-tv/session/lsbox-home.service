@@ -1,0 +1,16 @@
+# ~/.config/systemd/user/lsbox-home.service (tv user)
+# Starts only in the "LSBox TV" session (LSBOX_TV=1), never in Plasma Bigscreen.
+[Unit]
+Description=LSBox Home (TV home screen)
+PartOf=graphical-session.target
+After=plasma-kwin_wayland.service
+
+[Service]
+ExecCondition=/usr/bin/test "${LSBOX_TV}" = 1
+ExecStart=/usr/bin/python3 -I %h/.local/share/lsbox-home/lsbox_home.py
+Restart=always
+RestartSec=1
+Slice=session.slice
+
+[Install]
+WantedBy=plasma-workspace.target
