@@ -1,13 +1,14 @@
 {
-  "_help": "Home screen apps, in order. desktop = .desktop names to try (first one found wins). match = extra window classes. color = tile gradient. image = optional full-size tile picture (PNG, 5:3). keep_warm = start it hidden at login so the first open is instant. Copy this file to ~/.config/lsbox-home/apps.json to change it, then Control Center > Restart home screen.",
+  "_help": "Home screen apps, in order. desktop = .desktop names to try (first one found wins). match = extra window classes. color = tile gradient. image = optional full-size tile picture (PNG, 5:3). keep_warm = start it hidden at login so the first open is instant (Moonfin does this through Control Center > Home screen settings). builtin = drawn by the home screen itself (search). Copy this file to ~/.config/lsbox-home/apps.json to change it, then Control Center > Restart home screen.",
   "jellyfin_config": "~/.config/refresh-match/config",
-  "screensaver_minutes": 5,
   "apps": [
     {
       "key": "moonfin", "name": "Moonfin", "tagline": "Movies and shows from your server",
       "desktop": ["org.moonfin.linux", "moonfin", "io.moonfin.moonfin"],
       "match": ["org.moonfin.linux", "moonfin"],
-      "color": ["#0f1b4d", "#5a3fd6"], "shelf": "jellyfin", "keep_warm": false
+      "color": ["#0f1b4d", "#5a3fd6"],
+      "shelf": "jellyfin",
+      "keep_warm": true
     },
     {
       "key": "youtube", "name": "YouTube", "tagline": "YouTube for TV",
@@ -19,13 +20,15 @@
       "key": "spotify", "name": "Spotify", "tagline": "Music and podcasts",
       "desktop": ["com.spotify.Client", "spotify"],
       "match": ["spotify", "com.spotify.client"],
-      "color": ["#04230f", "#1db954"]
+      "color": ["#04230f", "#1db954"],
+      "shelf": "spotify"
     },
     {
       "key": "steam", "name": "Steam", "tagline": "Big Picture games",
       "desktop": ["steam-tv", "com.valvesoftware.Steam"],
       "match": ["steam", "com.valvesoftware.steam", "steamwebhelper"],
-      "color": ["#0b1a2c", "#2a6db0"]
+      "color": ["#0b1a2c", "#2a6db0"],
+      "shelf": "steam"
     },
     {
       "key": "moonlight", "name": "Moonlight", "tagline": "Stream games from your PC",
@@ -38,6 +41,12 @@
       "desktop": ["dev.eden_emu.eden"],
       "match": ["eden", "dev.eden_emu.eden"],
       "color": ["#2a0d1f", "#c2366e"]
+    },
+    {
+      "key": "search", "name": "Search", "tagline": "Find movies and shows on your server",
+      "builtin": "search",
+      "icon": "system-search",
+      "color": ["#15161b", "#3b3e4a"]
     },
     {
       "key": "settings", "name": "Settings", "tagline": "Wi-Fi, Bluetooth, sound and display",

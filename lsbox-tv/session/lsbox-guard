@@ -1,0 +1,20 @@
+#!/bin/sh
+# Runs before every start of the home screen (ExecStartPre). After a
+# one-press update the new version has to prove itself: it removes .pending
+# once it has run for 30 seconds. If it fails to get that far twice, the
+# previous version is put back.
+LIVE="$HOME/.local/share/lsbox-home"
+PREV="$LIVE.prev"
+P="$LIVE/.pending"
+[ -f "$P" ] || exit 0
+n=$(cat "$P" 2>/dev/null)
+case "$n" in ''|*[!0-9]*) n=0 ;; esac
+if [ "$n" -ge 2 ] && [ -d "$PREV" ]; then
+  rm -rf "$LIVE.bad"
+  mv "$LIVE" "$LIVE.bad" && mv "$PREV" "$LIVE"
+  rm -f "$LIVE/.pending"
+  echo "lsbox-guard: new version failed to start twice, rolled back (kept in $LIVE.bad)"
+  exit 0
+fi
+echo $((n + 1)) > "$P"
+exit 0

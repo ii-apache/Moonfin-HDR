@@ -13,7 +13,10 @@ Item {
 
     readonly property var actions: {
         var a = [{ id: "move", label: "Move", detail: "Change where it sits on the home screen" }]
-        if (app && app.running) a.push({ id: "close", label: "Close " + app.name, detail: "Quit the app" })
+        if (app && app.running) {
+            a.push({ id: "close", label: "Close " + app.name, detail: "Quit the app" })
+            a.push({ id: "force", label: "Force close", detail: "If it is frozen" })
+        }
         a.push({ id: "hide", label: "Hide from Home", detail: "Bring it back from Control Center" })
         a.push({ id: "cancel", label: "Cancel", detail: "" })
         return a
@@ -29,6 +32,7 @@ Item {
             if (id === "move") { win.overlay = "move"; return }
             win.overlay = ""
             if (id === "close") home.closeApp(app.key)
+            else if (id === "force") home.forceClose(app.key)
             else if (id === "hide") home.hideApp(app.key)
         }
         else if (k === Qt.Key_Escape || k === Qt.Key_Back || k === Qt.Key_Cancel || k === Qt.Key_Backspace) win.overlay = ""
@@ -40,14 +44,14 @@ Item {
         width: win.width * 0.32
         height: col.height + 80 * win.u
         radius: 34 * win.u
-        color: "#f01c1d22"
+        color: theme.panel
         border.color: "#22ffffff"
         Column {
             id: col
             x: 40 * win.u; y: 40 * win.u
             width: parent.width - 80 * win.u
             spacing: 24 * win.u
-            Text { text: root.app ? root.app.name : ""; color: "white"; font.pixelSize: 42 * win.u; font.weight: Font.Bold }
+            Text { text: root.app ? root.app.name : ""; color: theme.panelText; font.pixelSize: 42 * win.u; font.weight: Font.Bold }
             MenuList { width: parent.width; items: root.actions; index: root.index }
         }
     }

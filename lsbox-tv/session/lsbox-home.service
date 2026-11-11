@@ -4,12 +4,15 @@
 Description=LSBox Home (TV home screen)
 PartOf=graphical-session.target
 After=plasma-kwin_wayland.service
+# A crash loop must not stop it for good: keep trying.
+StartLimitIntervalSec=0
 
 [Service]
 ExecCondition=/usr/bin/test "${LSBOX_TV}" = 1
+ExecStartPre=/bin/sh %h/.local/share/lsbox-guard
 ExecStart=/usr/bin/python3 -I %h/.local/share/lsbox-home/lsbox_home.py
 Restart=always
-RestartSec=1
+RestartSec=2
 Slice=session.slice
 
 [Install]

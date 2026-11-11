@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# box-heartbeat: tells Uptime Kuma the living-room box is alive, and stays
+# silent (so Kuma alerts) when the drive is nearly full or the TV home screen
+# is down. The push URL lives in ~/.config/box-heartbeat/url (chmod 600),
+# never in this script.
+set -eu
+url_file="$HOME/.config/box-heartbeat/url"
+used=$(df --output=pcent / | tail -1 | tr -dc '0-9')
+if [ "$used" -ge 90 ]; then
+  echo "box-heartbeat: drive ${used}% full, not reporting healthy"
+  exit 1
+fi
+home="n/a"
+if systemctl --user show-environment 2>/dev/null | grep -qx 'LSBOX_TV=1'; then
+  if systemctl --user is-active --quiet lsbox-home.service; then
+    home="up"
+  else
+    echo "box-heartbeat: LSBox Home is not running, not reporting healthy"
+    exit 1
+  fi
+fi
+curl -fsS -m 10 -G "$(cat "$url_file")" \
+  --data-urlencode "status=up" --data-urlencode "msg=drive ${used}% used, home screen ${home}" >/dev/null

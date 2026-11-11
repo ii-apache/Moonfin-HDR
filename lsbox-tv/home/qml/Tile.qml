@@ -9,6 +9,8 @@ Item {
     property bool wiggle: false
     property bool dimmed: false
     property bool showDot: true
+    property bool useArt: true
+    readonly property bool liveArt: useArt && !!app && app.image === "" && (app.art || "") !== ""
     z: focused ? 10 : 0
     scale: focused ? 1.15 : 1.0
     opacity: dimmed ? 0.55 : 1
@@ -39,6 +41,24 @@ Item {
                 GradientStop { position: 1.0; color: "#1affffff" }
             }
         }
+        // Live artwork: what you would watch or play next in this app.
+        Image {
+            id: artImg
+            visible: t.liveArt
+            anchors.fill: parent
+            source: t.liveArt ? t.app.art : ""
+            sourceSize.width: 640
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+        }
+        Rectangle {
+            visible: t.liveArt
+            anchors.fill: parent
+            gradient: Gradient {
+                GradientStop { position: 0.35; color: "#00000000" }
+                GradientStop { position: 1.0; color: "#c0000000" }
+            }
+        }
         Image {
             visible: t.app && t.app.image !== ""
             anchors.fill: parent
@@ -47,7 +67,7 @@ Item {
             asynchronous: true
         }
         Text {  // no icon found: big first letter
-            visible: (!t.app || t.app.image === "") && appIcon.implicitWidth <= 1
+            visible: (!t.app || t.app.image === "") && appIcon.implicitWidth <= 1 && !t.liveArt
             anchors.centerIn: parent
             text: t.app ? t.app.name.charAt(0) : ""
             color: "white"
@@ -57,13 +77,20 @@ Item {
         Image {
             id: appIcon
             visible: !t.app || t.app.image === ""
-            anchors.centerIn: parent
-            height: parent.height * 0.52
+            x: t.liveArt ? parent.width * 0.06 : (parent.width - width) / 2
+            y: t.liveArt ? parent.height - height - parent.height * 0.08 : (parent.height - height) / 2
+            height: parent.height * (t.liveArt ? 0.3 : 0.52)
             width: height
             source: t.app ? "image://icon/" + encodeURIComponent(t.app.icon) : ""
             sourceSize: Qt.size(256, 256)
             smooth: true
             mipmap: true
+        }
+        Text {  // live artwork but no icon: the app's name in the corner
+            visible: t.liveArt && appIcon.implicitWidth <= 1
+            x: parent.width * 0.07; anchors.bottom: parent.bottom; anchors.bottomMargin: parent.height * 0.09
+            text: t.app ? t.app.name : ""
+            color: "white"; font.pixelSize: parent.height * 0.17; font.weight: Font.Bold
         }
         Sheen { active: t.focused }
     }
@@ -82,7 +109,7 @@ Item {
         anchors.topMargin: 22 * win.u
         anchors.horizontalCenter: parent.horizontalCenter
         text: t.app ? t.app.name : ""
-        color: "white"
+        color: theme.text
         font.pixelSize: 26 * win.u
         font.weight: Font.Medium
         opacity: t.focused ? 1 : 0
@@ -94,6 +121,6 @@ Item {
         anchors.topMargin: 14 * win.u
         anchors.horizontalCenter: parent.horizontalCenter
         width: 8 * win.u; height: width; radius: width / 2
-        color: "#ccffffff"
+        color: theme.dim
     }
 }

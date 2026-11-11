@@ -18,6 +18,9 @@ Item {
         if (k === Qt.Key_Left) index = Math.max(0, index - 1)
         else if (k === Qt.Key_Right) index = Math.min(items.length - 1, index + 1)
         else if (k === Qt.Key_Up && items.length) { home.closeWindow(items[index].wid) }
+        else if (keys.isMenu(k) && items.length) {  // frozen app: kill it
+            if (items[index].key) home.forceClose(items[index].key); else home.forceClosePid(items[index].pid)
+        }
         else if ((k === Qt.Key_Return || k === Qt.Key_Enter || k === Qt.Key_Select || k === Qt.Key_Space) && !e.isAutoRepeat && items.length) {
             win.overlay = ""
             home.activateWindow(items[index].wid)
@@ -35,7 +38,7 @@ Item {
     Text {
         x: win.margin; y: win.height * 0.12 + 72 * win.u
         visible: root.items.length > 0
-        text: "OK to open  ·  Up to close  ·  Back to return"
+        text: "OK to open  ·  Up to close  ·  Menu to force close a frozen app"
         color: "#b3ffffff"; font.pixelSize: 26 * win.u
     }
 
@@ -64,7 +67,7 @@ Item {
             scale: on ? 1.08 : 0.9
             opacity: on ? 1 : 0.6
             Behavior on scale { NumberAnimation { duration: 160 } }
-            Tile { anchors.fill: parent; app: card.modelData; focused: false; showDot: false }
+            Tile { anchors.fill: parent; app: card.modelData; focused: false; showDot: false; useArt: false }
             Text {
                 anchors.top: parent.bottom; anchors.topMargin: 28 * win.u
                 anchors.horizontalCenter: parent.horizontalCenter
